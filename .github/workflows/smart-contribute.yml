@@ -2,13 +2,9 @@ name: Smart Contribution
 on:
   schedule:
     - cron: '0 8 * * *'
-    - cron: '0 10 * * *'
     - cron: '0 12 * * *'
-    - cron: '0 14 * * *'
     - cron: '0 16 * * *'
-    - cron: '0 18 * * *'
     - cron: '0 20 * * *'
-    - cron: '0 22 * * *'
   workflow_dispatch:
 jobs:
   contribute:
@@ -19,45 +15,16 @@ jobs:
         run: |
           git config user.email "njfv17@gmail.com"
           git config user.name "brkN"
-      - name: Smart Commit
+      - name: Create commits
         run: |
-          python3 << 'EOF'
-          import random
-          import datetime
-          import subprocess
-          import os
-          
-          # 30% chance of no commit (natural)
+          python3 -c "
+          import random, subprocess, datetime
           if random.random() < 0.3:
-              print("Skipping today - natural gap")
+              print('Skip')
               exit(0)
-          
-          # Random number of commits (1-5)
-          num_commits = random.randint(1, 5)
-          
-          for i in range(num_commits):
-              # Random delay between commits (1-30 minutes)
-              delay = random.randint(1, 30)
-              timestamp = (datetime.datetime.utcnow() + datetime.timedelta(minutes=delay)).strftime("%Y-%m-%d %H:%M:%S")
-              
-              # Natural commit messages
-              messages = [
-                  "Update documentation",
-                  "Fix typo in README",
-                  "Refactor utility functions",
-                  "Add error handling",
-                  "Update dependencies",
-                  "Improve performance",
-                  "Add unit tests",
-                  "Fix edge case",
-                  "Code cleanup",
-                  "Update changelog"
-              ]
-              
-              msg = random.choice(messages)
-              subprocess.run(["git", "commit", "--allow-empty", "-m", msg], check=True)
-              
-          # Push all commits
-          subprocess.run(["git", "push"], check=True)
-          print(f"Pushed {num_commits} commits")
-          EOF
+          n = random.randint(1, 3)
+          for i in range(n):
+              subprocess.run(['git', 'commit', '--allow-empty', '-m', f'Update {datetime.datetime.now().strftime(\"%H:%M\")}'], check=True)
+          subprocess.run(['git', 'push'], check=True)
+          print(f'Pushed {n} commits')
+          "
