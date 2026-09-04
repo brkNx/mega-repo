@@ -1,87 +1,95 @@
 #!/bin/bash
-# Auto-contribution script for mega-repo
-# Runs daily at 00:01 Baku time (20:01 UTC)
-# Creates 65-130 meaningful commits
+# Auto-contribution script - runs forever
+# 65-130 commits per day, catches up missed days
 
 REPO_DIR="/tmp/mega-repo"
 EMAIL="njfv17@gmail.com"
 NAME="brkN"
 MIN_COMMITS=65
 MAX_COMMITS=130
-SRC_DIR="src"
-MODULES=("utils" "helpers" "core" "models" "api" "auth" "db" "cache" "workers" "tasks")
-DATE=$(date +%Y-%m-%d)
+MODULES=("utils" "helpers" "core" "models" "api" "auth" "db" "cache" "workers" "tasks" "validators" "serializers" "handlers" "middleware" "config" "exceptions" "services" "repositories" "schemas" "routes")
+LOG_FILE="/tmp/auto-contribute-history.log"
 
 cd "$REPO_DIR" || exit 1
-
 git config user.email "$EMAIL"
 git config user.name "$NAME"
-
 git pull origin main 2>/dev/null
 
-COMMIT_COUNT=$((RANDOM % ($MAX_COMMITS - $MIN_COMMITS + 1) + $MIN_COMMITS))
+# Get last contribution date from log
+LAST_DATE=""
+if [ -f "$LOG_FILE" ]; then
+    LAST_DATE=$(tail -1 "$LOG_FILE" | cut -d' ' -f1)
+fi
 
-MODULE=${MODULES[$RANDOM % ${#MODULES[@]}]}
-mkdir -p "$SRC_DIR/$MODULE"
+# Calculate today and catch-up days
+TODAY=$(date -u +%Y-%m-%d)
+if [ -z "$LAST_DATE" ]; then
+    DAYS_TO_RUN=1
+else
+    LAST_EPOCH=$(date -j -f "%Y-%m-%d" "$LAST_DATE" +%s 2>/dev/null || date -d "$LAST_DATE" +%s 2>/dev/null)
+    TODAY_EPOCH=$(date -j -f "%Y-%m-%d" "$TODAY" +%s 2>/dev/null || date -d "$TODAY" +%s 2>/dev/null)
+    DIFF=$(( (TODAY_EPOCH - LAST_EPOCH) / 86400 ))
+    if [ "$DIFF" -gt 0 ]; then
+        DAYS_TO_RUN=$DIFF
+    else
+        DAYS_TO_RUN=0
+    fi
+fi
 
-for i in $(seq 1 $COMMIT_COUNT); do
-    FILENAME="src/$MODULE/feature_$(date +%s)_$i.py"
+if [ "$DAYS_TO_RUN" -eq 0 ]; then
+    echo "$(date): Already ran today, skipping"
+    exit 0
+fi
+
+TOTAL_COMMITS=0
+for d in $(seq 0 $((DAYS_TO_RUN - 1))); do
+    RUN_DATE=$(date -u -v+${d}d +%Y-%m-%d 2>/dev/null || date -u -d "+${d} days" +%Y-%m-%d 2>/dev/null)
     
-    cat > "$FILENAME" << PYEOF
-"""Feature $i - Auto-generated contribution for $DATE"""
+    COMMIT_COUNT=$((RANDOM % ($MAX_COMMITS - $MIN_COMMITS + 1) + $MIN_COMMITS))
+    MODULE=${MODULES[$RANDOM % ${#MODULES[@]}]}
+    mkdir -p "src/$MODULE"
+
+    for i in $(seq 1 $COMMIT_COUNT); do
+        TS=$(date +%s%N)
+        FILENAME="src/$MODULE/feature_${TS}_${i}.py"
+        
+        cat > "$FILENAME" << PYEOF
+"""Feature $i - Auto-generated for $RUN_DATE"""
 
 import hashlib
 import json
-import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
-class Feature$i:
-    """Auto-generated feature for contribution graph."""
+class Feature{i}:
+    """Feature for contribution graph."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         self.created_at = datetime.now()
-        self._initialized = True
     
     def process(self, data: List[Any]) -> Dict[str, Any]:
-        """Process input data and return results."""
-        results = {"processed": len(data), "timestamp": self.created_at.isoformat()}
-        return results
+        return {"processed": len(data), "ts": self.created_at.isoformat()}
     
     def validate(self, value: Any) -> bool:
-        """Validate input value."""
         return value is not None
     
     def compute_hash(self, data: str) -> str:
-        """Compute SHA-256 hash of input data."""
         return hashlib.sha256(data.encode()).hexdigest()
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return {
-            "module": "$MODULE",
-            "feature_id": $i,
-            "created_at": self.created_at.isoformat(),
-            "initialized": self._initialized
-        }
-
-
-def main():
-    """Main entry point."""
-    feature = Feature$i()
-    result = feature.process([1, 2, 3])
-    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
-    main()
+    f = Feature$i()
+    print(json.dumps(f.process([1, 2, 3]), indent=2))
 PYEOF
-
-    git add "$FILENAME" 2>/dev/null
-    git commit -m "feat($MODULE): add feature $i for contribution" -m "Auto-generated contribution for $DATE" --quiet 2>/dev/null
+        git add "$FILENAME" 2>/dev/null
+        git commit -m "feat($MODULE): feature $i" --quiet 2>/dev/null
+    done
+    
+    echo "$RUN_DATE $COMMIT_COUNT commits" >> "$LOG_FILE"
+    TOTAL_COMMITS=$((TOTAL_COMMITS + COMMIT_COUNT))
 done
 
 git push origin main 2>/dev/null
-echo "$DATE: $COMMIT_COUNT commits pushed"
+echo "$(date): $TOTAL_COMMITS total commits for $DAYS_TO_RUN day(s)"
