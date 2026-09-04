@@ -21,7 +21,6 @@ if [ -f "$LOG_FILE" ]; then
     LAST_DATE=$(tail -1 "$LOG_FILE" | cut -d' ' -f1)
 fi
 
-# Calculate today and catch-up days
 TODAY=$(date -u +%Y-%m-%d)
 if [ -z "$LAST_DATE" ]; then
     DAYS_TO_RUN=1
@@ -83,7 +82,7 @@ if __name__ == "__main__":
     f = Feature$i()
     print(json.dumps(f.process([1, 2, 3]), indent=2))
 PYEOF
-        git add "$FILENAME" 2>/dev/null
+        git add "$FILENAME" && \
         git commit -m "feat($MODULE): feature $i" --quiet 2>/dev/null
     done
     
