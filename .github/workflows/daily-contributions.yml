@@ -25,7 +25,7 @@ jobs:
       
       - name: Generate contributions
         run: |
-          MIN_COMMITS=65
+          MIN_COMMITS=60
           MAX_COMMITS=130
           MODULES=("utils" "helpers" "core" "models" "api" "auth" "db" "cache" "workers" "tasks" "validators" "serializers" "handlers" "middleware" "config" "exceptions" "services" "repositories" "schemas" "routes")
           
