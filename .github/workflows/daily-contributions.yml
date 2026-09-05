@@ -2,7 +2,7 @@ name: Daily Contributions
 
 on:
   schedule:
-    - cron: '1 20 * * *'  # 20:01 UTC = 00:01 Baku
+    - cron: '1 0 * * *'  # 00:01 UTC = 04:01 Baku (must be UTC day for graph)
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
